@@ -1,9 +1,9 @@
 from logging import getLogger
-from rediserver.protocol import InputParser, Response
 import asynchat
 import asyncore
-import cStringIO
+import io
 import socket
+import protocol
 
 LOG = getLogger(__name__)
 
@@ -14,7 +14,7 @@ class RedisProtocolHandler(asynchat.async_chat):
     to the server's callback.
     """
 
-    LINE_FEED = '\r\n'
+    LINE_FEED = b'\r\n'
 
     def __init__(self, conn, addr, server):
         asynchat.async_chat.__init__(self, conn)
@@ -22,7 +22,7 @@ class RedisProtocolHandler(asynchat.async_chat):
         self.connection = conn
         self.server = server
         self.data = []
-        self.wfile = cStringIO.StringIO() #SocketStream(self.connection)
+        self.wfile = io.BytesIO()
 
         self.set_terminator(self.LINE_FEED)
         self.found_terminator = self._parse_header
@@ -78,20 +78,19 @@ class RedisProtocolHandler(asynchat.async_chat):
         self._process_data()
 
     def _process_data(self):
-        response = Response(self.wfile.write)
+        response = protocol.Response(self.wfile.write)
         try:
-            cmd = InputParser(self.data).read_response()
+            cmd = protocol.InputParser(self.data).read_response()
             self.server._callback(cmd, response, self)
             if not response.dirty:
                 raise Exception("no response")
-        except Exception, e:
+        except Exception as e:
             response.error(u"ERR: %s" % e)
             raise
         finally:
             resp = self.wfile.getvalue()
-            self.wfile = cStringIO.StringIO()
+            self.wfile = io.BytesIO()
             self.data = []
-
             # write the data out async; close_when_done actually
             # causes handle_close to be called, and we unblock and
             # enable reads again.

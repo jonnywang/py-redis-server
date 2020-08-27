@@ -4,3 +4,5 @@ build
 *.egg-info
 .project
 .pydevproject
+.eggs/
+.idea/

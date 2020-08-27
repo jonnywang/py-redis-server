@@ -1,17 +1,10 @@
 import sys
-import os
-import glob
 import asyncore
 from collections import defaultdict
 
-# make demos easy.
-__parent = os.path.join(os.path.dirname(__file__), "../")
-sys.path.append(__parent)
-sys.path.extend(glob.glob(os.path.join(__parent, "*.egg")))
-
 from rediserver.net import AsyncoreServer
 
-_counter = iter(xrange(1000000000)) # used by the count module
+_counter = iter(range(1000000000))  # used by the count module
 _incr = defaultdict(int)
 
 
@@ -43,21 +36,22 @@ def incr(cmd, response, request):
     _incr[cmd[1]] += int(cmd[2])
     response.encode(v)
 
+
 MODE = {'echo': echo, 'count': count, 'sum': summer, 'incr': incr}
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print "usage: python %s <port> [<echo|count|sum|incr>]"
+        print("usage: python {} <port> [<echo|count|sum|incr>]".format(sys.argv[0]))
         sys.exit(1)
     port, mode = sys.argv[1:]
     mode = MODE.get(sys.argv[2], 'echo')
     if not mode:
-        print "usage: python %s <port> <echo|count|sum|incr>"
+        print("usage: python %s <port> <echo|count|sum|incr>")
         sys.exit(1)
 
     s = AsyncoreServer('', int(port), callback=mode)
-    print "%s server running on port %s" % (sys.argv[2], port)
+    print("%s server running on port %s" % (sys.argv[2], port))
     try:
         asyncore.loop()
     except KeyboardInterrupt:
-        print "Crtl+C pressed. Shutting down."
+        print("Crtl+C pressed. Shutting down.")
